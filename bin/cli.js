@@ -5,6 +5,7 @@
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const { generateImage } = require('./generate')
 
 const packageRoot = path.resolve(__dirname, '..')
 const bundledSkillPath = path.join(packageRoot, 'imagegen-smarto')
@@ -16,9 +17,12 @@ Usage:
   imagegen-smarto install [--codex-home <path>]
   imagegen-smarto uninstall [--codex-home <path>]
   imagegen-smarto path [--codex-home <path>]
+  imagegen-smarto generate --prompt "your prompt" [options]
   imagegen-smarto --help
 
-The default Codex home is CODEX_HOME or ~/.codex.`)
+The default Codex home is CODEX_HOME or ~/.codex.
+
+Run imagegen-smarto generate --help for image generation options.`)
 }
 
 function parseArgs(argv) {
@@ -80,8 +84,14 @@ function uninstallSkill(codexHome) {
   return target
 }
 
-function main() {
-  const { command, codexHome: explicitCodexHome, quiet } = parseArgs(process.argv.slice(2))
+async function main() {
+  const argv = process.argv.slice(2)
+  if (argv[0] === 'generate') {
+    await generateImage(argv.slice(1))
+    return
+  }
+
+  const { command, codexHome: explicitCodexHome, quiet } = parseArgs(argv)
 
   if (command === 'help') {
     printHelp()
@@ -113,7 +123,10 @@ function main() {
 }
 
 try {
-  main()
+  main().catch((error) => {
+    console.error(`imagegen-smarto: ${error.message}`)
+    process.exitCode = 1
+  })
 } catch (error) {
   console.error(`imagegen-smarto: ${error.message}`)
   process.exitCode = 1

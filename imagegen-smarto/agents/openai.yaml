@@ -1,7 +1,7 @@
 interface:
   display_name: "SmartO VPS Image Generation"
-  short_description: "Generate images through SmartO, including $imagegen workflows"
-  default_prompt: "Use SmartO as the image-generation provider for this workflow, including workflows that normally invoke $imagegen."
+  short_description: "Generate or edit images through SmartO"
+  default_prompt: "Generate or edit the requested image through SmartO."
 
 policy:
   allow_implicit_invocation: true

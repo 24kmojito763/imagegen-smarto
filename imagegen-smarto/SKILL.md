@@ -1,65 +1,27 @@
 ---
 name: imagegen-smarto
-description: Generate or edit raster images through the user's SmartO OpenAI-compatible VPS relay. Automatically use this skill for natural-language requests to create, draw, generate, or edit an image when the SmartO relay profile is active. It is also the drop-in image-generation provider for workflows that normally invoke `$imagegen`, including `hatch-pet`; preserve those workflows and replace only the image-generation execution layer. Do not use it for image analysis or coding tasks, official OpenAI/ChatGPT providers, or the built-in image_gen tool.
+description: Use the active SmartO relay to actually create or edit images. Trigger immediately for any request to create, draw, generate, modify, transform, or redesign a picture, including text-to-image (文生图), image-to-image (图生图), and image generation inside another workflow. Do not trigger for viewing, analyzing, describing, or recognizing an existing image, or for ordinary non-image tasks.
 ---
 
-# SmartO relay image generation
+# SmartO image generation
 
-Use this skill for actual raster-image generation or editing requests when the
-SmartO relay profile is active. It is implicitly invokable, so the user should
-be able to ask for an image in natural language without first writing
-`$imagegen-smarto`.
+When this skill triggers, execute the installed `imagegen-smarto` command. The
+command is the image-generation entry point: it sends the request to the active
+Codex provider, adds the SmartO marker internally, keeps streaming enabled, and
+saves the returned image locally. Do not stop after reading this file and do
+not try to change the outer Codex request yourself.
 
-When another active skill invokes `$imagegen` for a visual job (including the
-official `hatch-pet` skill), treat this skill as the selected image-generation
-provider when the SmartO relay profile is active. Keep the calling skill's
-workflow, prompts, reference-image requirements, QA, and file handling
-unchanged; replace only the provider-specific built-in image-generation call.
-If that skill also loads the official `.system/imagegen/SKILL.md`, retain its
-prompting and output-quality guidance but override only its provider-selection
-rules: do not call the built-in `image_gen` tool and do not use its CLI/API
-fallback. Use the normal Responses request through SmartO instead.
-Every separate image-generation worker request must load this routing
-instruction so the marker below is present in that request's Responses
-`instructions` field. Do not ask the user to type the marker or add it to the
-image prompt.
+For a text-to-image request, run:
 
-This skill is a routing signal, not a local image-generation tool:
-
-- Never call the built-in `image_gen` tool or any other native image tool.
-- Never use the CLI/API fallback or ask for `OPENAI_API_KEY`.
-- Keep the user's natural-language image prompt, reference images, and edit
-  constraints in the normal Responses request.
-- Do not add a tool to ordinary non-image requests.
-- Do not expose the routing marker in the user-visible answer.
-
-The relay recognizes the marker below in the active skill instructions. Keep
-this marker stable because it is the relay-side routing contract. Only image
-requests that load this skill should cause the relay to add the Responses
-built-in image tool:
-
-`__CODEX_VPS_IMAGEGEN__`
-
-The relay-side rule should apply only to `/v1/responses` requests whose
-`instructions` contain that marker. It must merge the image tool into the
-request's existing `tools` array, preserving every client-declared tool. If
-the request has no `tools`, create the array. Do not skip injection merely
-because the request already contains shell, file, function, or other tools:
-
-```json
-{"type":"image_generation","action":"auto"}
+```sh
+imagegen-smarto generate --prompt "<the user's complete image prompt>"
 ```
 
-Do not add a duplicate if an equivalent `image_generation` tool is already
-present. It may set `tool_choice` to `auto` only when the client did not
-provide one.
-Do not force image generation for every turn. The upstream model decides from
-the natural-language request whether to generate a new image or edit an image
-in context.
+Preserve the user's complete prompt and edit instructions. For image-to-image
+requests, pass each available reference image as `--image <absolute-path>`.
+The command can be repeated for multiple requested outputs.
 
-The relay must forward `image_generation_call` output items unchanged. A
-completed item contains a base64 image in `result`; do not turn it into a text
-description or replace it with the built-in tool protocol.
-
-When the active provider is the official OpenAI/ChatGPT provider, leave this
-skill unused so the original `imagegen` skill remains available there.
+After the command succeeds, use every printed `IMAGE_MARKDOWN=...` line in the
+response so the generated file is displayed as an image. Do not replace the
+image with a textual description. If the command fails, report its actual error
+instead of claiming that an image was generated.

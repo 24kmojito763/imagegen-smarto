@@ -1,19 +1,11 @@
 # imagegen-smarto
 
-Codex skill for sending natural-language image generation and editing requests
-through a custom SmartO OpenAI-compatible VPS relay.
+Codex skill for natural-language image generation and editing through a custom
+SmartO OpenAI-compatible VPS relay.
 
-The skill does not call Codex's built-in `image_gen` tool. It places a private
-routing marker in the Responses instructions; the relay adds its
-`image_generation` tool for requests that load this skill, merging it with
-existing function, shell, file, or other tools. Ordinary non-image requests
-remain unchanged.
-
-When the SmartO profile is active, this skill can also replace only the image
-provider inside workflows that normally use `$imagegen`, including the
-official `hatch-pet` workflow. The workflow's prompts, references, QA, and
-file handling remain unchanged; only image generation is routed through
-SmartO.
+It implicitly handles requests to create, draw, generate, modify, perform
+image-to-image, or perform text-to-image generation. Requests to view,
+analyze, describe, or recognize an image remain ordinary requests.
 
 ## Install with npm
 
@@ -26,7 +18,13 @@ npm install --global imagegen-smarto
 The npm postinstall step copies the skill to `CODEX_HOME/skills/imagegen-smarto`
 or, when `CODEX_HOME` is not set, `~/.codex/skills/imagegen-smarto`.
 
-To reinstall or update the skill without reinstalling the npm package:
+To update to the latest published package:
+
+```bash
+npm install --global imagegen-smarto
+```
+
+To recopy the skill from the already installed npm package:
 
 ```bash
 imagegen-smarto install
@@ -83,10 +81,35 @@ python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-githu
   --method git
 ```
 
-After installation, use a profile that enables `imagegen-smarto` and disables
-the official `imagegen` skill. The skill is configured for implicit invocation,
-so an image request can be written in natural language without first typing
-`$imagegen-smarto`.
+After installation, use the profile that points requests to SmartO. The skill
+is configured for implicit invocation, so an image request can be written in
+natural language without first typing `$imagegen-smarto`.
+
+## How image generation works
+
+When the skill is triggered, Codex runs the installed `imagegen-smarto`
+command. The command reads the active provider URL, model, and Codex
+credential, sends a streaming Responses request with the SmartO marker, parses
+the returned `image_generation_call`, and saves the PNG locally. It prints an
+absolute `IMAGE_MARKDOWN=...` line so Codex can display the result inline.
+
+You can also test the execution path directly:
+
+```bash
+imagegen-smarto generate --prompt "一只戴红色围巾的小猫，儿童绘本风格"
+```
+
+For editing, add one or more reference images:
+
+```bash
+imagegen-smarto generate \
+  --prompt "把背景改成海边日落，保留主体" \
+  --image /absolute/path/to/source.png
+```
+
+The command always uses `stream=true` internally because the relay requires
+streaming for image generation. The skill does not need to describe or modify
+the relay request body.
 
 ## Local profile switch
 
@@ -97,5 +120,4 @@ codex --profile smarto
 codex --profile official
 ```
 
-`smarto` selects the custom relay and enables this skill. `official` selects
-the built-in OpenAI provider and enables Codex's original `imagegen` skill.
+`smarto` selects the custom relay and enables this skill.
