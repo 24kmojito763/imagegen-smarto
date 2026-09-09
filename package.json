@@ -1,0 +1,31 @@
+{
+  "name": "imagegen-smarto",
+  "version": "0.1.0",
+  "description": "Install the imagegen-smarto Codex skill on Windows and Linux.",
+  "bin": {
+    "imagegen-smarto": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "imagegen-smarto/",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node bin/cli.js install --postinstall"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/24kmojito763/imagegen-smarto.git"
+  },
+  "homepage": "https://github.com/24kmojito763/imagegen-smarto",
+  "keywords": [
+    "codex",
+    "openai",
+    "image-generation",
+    "skill"
+  ],
+  "license": "MIT"
+}

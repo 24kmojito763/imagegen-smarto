@@ -8,9 +8,35 @@ routing marker in the Responses instructions; the relay adds its
 `image_generation` tool only for requests that load this skill. Ordinary
 non-image requests remain unchanged.
 
-## Install
+## Install with npm
 
-With the preinstalled Codex skill installer:
+The recommended installation is the same on Windows, Linux, and macOS:
+
+```bash
+npm install --global imagegen-smarto
+```
+
+The npm postinstall step copies the skill to `CODEX_HOME/skills/imagegen-smarto`
+or, when `CODEX_HOME` is not set, `~/.codex/skills/imagegen-smarto`.
+
+To reinstall or update the skill without reinstalling the npm package:
+
+```bash
+imagegen-smarto install
+```
+
+To print the target directory:
+
+```bash
+imagegen-smarto path
+```
+
+If npm lifecycle scripts are disabled, run `imagegen-smarto install` once after
+the global npm installation.
+
+## Install with the Codex installer
+
+The preinstalled Codex skill installer remains available as a fallback:
 
 ```bash
 python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
