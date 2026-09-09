@@ -34,6 +34,37 @@ imagegen-smarto path
 If npm lifecycle scripts are disabled, run `imagegen-smarto install` once after
 the global npm installation.
 
+## Uninstall globally
+
+Remove the Codex skill first, then remove the npm package:
+
+```bash
+imagegen-smarto uninstall
+npm uninstall --global imagegen-smarto
+```
+
+The uninstall command removes only
+`CODEX_HOME/skills/imagegen-smarto` (or `~/.codex/skills/imagegen-smarto` when
+`CODEX_HOME` is not set). It does not remove other Codex skills.
+
+If the npm package has already been removed, delete the skill directory
+manually:
+
+Linux/macOS:
+
+```bash
+rm -rf ~/.codex/skills/imagegen-smarto
+```
+
+Windows PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.codex\skills\imagegen-smarto"
+```
+
+When using a custom `CODEX_HOME`, replace `~/.codex` or
+`%USERPROFILE%\.codex` with that directory.
+
 ## Install with the Codex installer
 
 The preinstalled Codex skill installer remains available as a fallback:

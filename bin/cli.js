@@ -14,6 +14,7 @@ function printHelp() {
 
 Usage:
   imagegen-smarto install [--codex-home <path>]
+  imagegen-smarto uninstall [--codex-home <path>]
   imagegen-smarto path [--codex-home <path>]
   imagegen-smarto --help
 
@@ -73,6 +74,12 @@ function installSkill(codexHome) {
   return target
 }
 
+function uninstallSkill(codexHome) {
+  const target = getSkillTarget(codexHome)
+  fs.rmSync(target, { recursive: true, force: true })
+  return target
+}
+
 function main() {
   const { command, codexHome: explicitCodexHome, quiet } = parseArgs(process.argv.slice(2))
 
@@ -84,6 +91,14 @@ function main() {
   const codexHome = resolveCodexHome(explicitCodexHome)
   if (command === 'path') {
     console.log(getSkillTarget(codexHome))
+    return
+  }
+
+  if (command === 'uninstall') {
+    const target = uninstallSkill(codexHome)
+    if (!quiet) {
+      console.log(`Removed imagegen-smarto from ${target}`)
+    }
     return
   }
 
