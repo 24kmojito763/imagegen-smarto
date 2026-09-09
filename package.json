@@ -1,6 +1,6 @@
 {
   "name": "imagegen-smarto",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Install the imagegen-smarto Codex skill on Windows and Linux.",
   "bin": {
     "imagegen-smarto": "bin/cli.js"

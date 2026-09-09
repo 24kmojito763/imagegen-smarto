@@ -5,8 +5,15 @@ through a custom SmartO OpenAI-compatible VPS relay.
 
 The skill does not call Codex's built-in `image_gen` tool. It places a private
 routing marker in the Responses instructions; the relay adds its
-`image_generation` tool only for requests that load this skill. Ordinary
-non-image requests remain unchanged.
+`image_generation` tool for requests that load this skill, merging it with
+existing function, shell, file, or other tools. Ordinary non-image requests
+remain unchanged.
+
+When the SmartO profile is active, this skill can also replace only the image
+provider inside workflows that normally use `$imagegen`, including the
+official `hatch-pet` workflow. The workflow's prompts, references, QA, and
+file handling remain unchanged; only image generation is routed through
+SmartO.
 
 ## Install with npm
 
