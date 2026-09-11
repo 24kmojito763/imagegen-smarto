@@ -1,27 +1,42 @@
 ---
 name: imagegen-smarto
-description: Use the active SmartO relay to actually create or edit images. Trigger immediately for any request to create, draw, generate, modify, transform, or redesign a picture, including text-to-image (文生图), image-to-image (图生图), and image generation inside another workflow. Do not trigger for viewing, analyzing, describing, or recognizing an existing image, or for ordinary non-image tasks.
+description: Use the active SmartO relay to create or edit raster images. Trigger immediately for requests to create, draw, generate, modify, transform, or redesign a picture, including text-to-image (文生图), image-to-image (图生图), and image generation inside another workflow. Do not trigger for viewing, analyzing, describing, or recognizing an existing image, ordinary non-image tasks, or output better produced as SVG or code-native graphics.
 ---
 
 # SmartO image generation
 
-When this skill triggers, execute the installed `imagegen-smarto` command. The
-command is the image-generation entry point: it sends the request to the active
-Codex provider, adds the SmartO marker internally, keeps streaming enabled, and
-saves the returned image locally. Do not stop after reading this file and do
-not try to change the outer Codex request yourself.
+Use `imagegen-smarto generate` to produce the requested image. The command is
+the image-generation tool for this skill; execute it instead of stopping after
+reading these instructions.
 
-For a text-to-image request, run:
+## Workflow
 
-```sh
-imagegen-smarto generate --prompt "<the user's complete image prompt>"
-```
+1. Decide whether this is generation or an edit. Treat supplied images as edit
+   inputs only when the user asks to change or combine them; otherwise label
+   their reference role in the prompt.
+2. Rewrite the user's request into a strong image prompt using
+   [references/prompting.md](references/prompting.md). Preserve all explicit
+   requirements. Normalize detailed prompts; augment generic prompts only when
+   the addition materially improves the result.
+3. Generate one requested asset or variant per command:
 
-Preserve the user's complete prompt and edit instructions. For image-to-image
-requests, pass each available reference image as `--image <absolute-path>`.
-The command can be repeated for multiple requested outputs.
+   ```sh
+   imagegen-smarto generate --prompt "<final structured prompt>"
+   ```
 
-After the command succeeds, use every printed `IMAGE_MARKDOWN=...` line in the
-response so the generated file is displayed as an image. Do not replace the
-image with a textual description. If the command fails, report its actual error
-instead of claiming that an image was generated.
+4. For an edit, add each available source or reference image by absolute path.
+   Up to five images may be supplied:
+
+   ```sh
+   imagegen-smarto generate --prompt "<final structured edit prompt>" \
+     --image /absolute/path/to/input.png
+   ```
+
+5. If the user named an output location, pass `--output <path>`. Do not
+   overwrite an existing asset unless replacement was explicitly requested.
+6. On success, include every printed `IMAGE_MARKDOWN=...` value in the answer
+   so Codex displays the generated file. Report the saved path. For a failed
+   command, report the actual error and do not claim that an image exists.
+
+For edits, state invariants explicitly in the prompt: `change only X; keep Y
+unchanged`. When iterating, make one targeted change and repeat the invariants.

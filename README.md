@@ -85,13 +85,17 @@ After installation, use the profile that points requests to SmartO. The skill
 is configured for implicit invocation, so an image request can be written in
 natural language without first typing `$imagegen-smarto`.
 
-## How image generation works
+## Image generation workflow
 
-When the skill is triggered, Codex runs the installed `imagegen-smarto`
-command. The command reads the active provider URL, model, and Codex
-credential, sends a streaming Responses request with the SmartO marker, parses
-the returned `image_generation_call`, and saves the PNG locally. It prints an
-absolute `IMAGE_MARKDOWN=...` line so Codex can display the result inline.
+When the skill is triggered, Codex first turns the request into the same kind
+of structured, production-oriented prompt used by the official image skill.
+Detailed prompts are preserved and normalized; generic prompts receive only
+useful composition or presentation detail. Edits explicitly lock the parts
+that must remain unchanged.
+
+Codex then runs the installed `imagegen-smarto` command. The command uses the
+active SmartO provider and credential, saves the returned PNG locally, and
+prints an absolute `IMAGE_MARKDOWN=...` line so Codex can display it inline.
 
 You can also test the execution path directly:
 
@@ -107,9 +111,9 @@ imagegen-smarto generate \
   --image /absolute/path/to/source.png
 ```
 
-The command always uses `stream=true` internally because the relay requires
-streaming for image generation. The skill does not need to describe or modify
-the relay request body.
+The command handles its relay protocol internally; the skill only prepares the
+final image prompt, supplies reference-image paths, and consumes the returned
+image result.
 
 ## Local profile switch
 
