@@ -34,9 +34,18 @@ reading these instructions.
 
 5. If the user named an output location, pass `--output <path>`. Do not
    overwrite an existing asset unless replacement was explicitly requested.
-6. On success, include every printed `IMAGE_MARKDOWN=...` value in the answer
+6. Keep the default status heartbeat while the relay is working. Image
+   generation can take a minute or more; silence is not evidence of failure.
+   If another tool wrapper yields while the command is still running, wait for
+   the process to finish instead of interrupting it. Use `--quiet` only when a
+   caller needs machine-clean stderr.
+7. On success, include every printed `IMAGE_MARKDOWN=...` value in the answer
    so Codex displays the generated file. Report the saved path. For a failed
    command, report the actual error and do not claim that an image exists.
+
+The CLI writes status heartbeats to stderr and keeps the final `IMAGE_PATH=`
+and `IMAGE_MARKDOWN=` records on stdout. The heartbeat reports elapsed waiting
+time; it is not an upstream completion percentage or a health guarantee.
 
 For edits, state invariants explicitly in the prompt: `change only X; keep Y
 unchanged`. When iterating, make one targeted change and repeat the invariants.

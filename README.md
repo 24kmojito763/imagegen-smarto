@@ -115,6 +115,12 @@ The command handles its relay protocol internally; the skill only prepares the
 final image prompt, supplies reference-image paths, and consumes the returned
 image result.
 
+While the relay is producing an image, the command writes a periodic status
+heartbeat with elapsed time to stderr. This is a waiting indicator, not an
+upstream completion percentage. The final `IMAGE_PATH=` and `IMAGE_MARKDOWN=`
+records remain on stdout. Pass `--quiet` to suppress status messages while
+keeping those final records.
+
 ## Local profile switch
 
 The two profiles used by the author are:

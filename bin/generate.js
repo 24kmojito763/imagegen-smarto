@@ -8,6 +8,17 @@ const path = require('node:path')
 
 const IMAGEGEN_MARKER = '__CODEX_VPS_IMAGEGEN__'
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000
+const DEFAULT_PROGRESS_INTERVAL_MS = 15 * 1000
+
+function progressIntervalMs() {
+  const configured = Number(process.env.IMAGEGEN_SMARTO_PROGRESS_INTERVAL_MS)
+  if (Number.isFinite(configured) && configured > 0) return configured
+  return DEFAULT_PROGRESS_INTERVAL_MS
+}
+
+function reportProgress(message, quiet) {
+  if (!quiet) console.error(`imagegen-smarto: ${message}`)
+}
 
 function printGenerateHelp() {
   console.log(`imagegen-smarto generate - generate or edit an image through the active relay
@@ -23,6 +34,7 @@ Options:
   --model <model>       Override the model from Codex config
   --base-url <url>      Override the active provider base URL
   --timeout <seconds>   Request timeout (default: 600)
+  --quiet                Suppress status messages (final paths still print)
   --help                Show this help`)
 }
 
@@ -34,6 +46,7 @@ function parseGenerateArgs(argv) {
     model: null,
     baseUrl: null,
     timeoutMs: DEFAULT_TIMEOUT_MS,
+    quiet: false,
   }
   const positional = []
 
@@ -81,6 +94,11 @@ function parseGenerateArgs(argv) {
         throw new Error('--timeout must be a positive number of seconds')
       }
       options.timeoutMs = seconds * 1000
+      continue
+    }
+
+    if (arg === '--quiet') {
+      options.quiet = true
       continue
     }
 
@@ -273,7 +291,7 @@ function outputPathForIndex(requestedPath, index) {
   return `${base.slice(0, -extension.length)}-${index + 1}${extension}`
 }
 
-async function requestImage({ prompt, images, output, model, baseUrl, timeoutMs }) {
+async function requestImage({ prompt, images, output, model, baseUrl, timeoutMs, quiet }) {
   const codexHome = resolveCodexHome()
   const active = readActiveProviderConfig(codexHome)
   const apiKey = readApiKey(codexHome)
@@ -290,6 +308,14 @@ async function requestImage({ prompt, images, output, model, baseUrl, timeoutMs 
   }
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  const startedAt = Date.now()
+  const interval = progressIntervalMs()
+  const elapsedSeconds = () => Math.floor((Date.now() - startedAt) / 1000)
+  const progressTimer = setInterval(() => {
+    reportProgress(`still waiting for the image relay (${elapsedSeconds()}s elapsed)`, quiet)
+  }, interval)
+  const clearProgress = () => clearInterval(progressTimer)
+  reportProgress('starting image generation', quiet)
   let response
   try {
     response = await fetch(normalizeResponsesUrl(baseUrl || active.baseUrl), {
@@ -303,37 +329,52 @@ async function requestImage({ prompt, images, output, model, baseUrl, timeoutMs 
     })
   } catch (error) {
     clearTimeout(timeout)
+    clearProgress()
     if (error.name === 'AbortError') throw new Error(`image request timed out after ${timeoutMs / 1000}s`)
     throw new Error(`cannot reach the image relay: ${error.message}`)
   }
 
   if (!response.ok) {
     clearTimeout(timeout)
+    clearProgress()
     const errorText = (await response.text()).slice(0, 2000)
     throw new Error(`image relay returned HTTP ${response.status}: ${errorText}`)
   }
   if (!response.body) {
     clearTimeout(timeout)
+    clearProgress()
     throw new Error('image relay returned no response body')
   }
+
+  reportProgress('relay connected; waiting for streamed image result', quiet)
 
   const results = []
   let relayError = null
   let buffer = ''
+  let reader = null
+  let streamDone = false
+  let resultReported = false
   const decoder = new TextDecoder()
   const onEvent = (event) => {
     relayError ||= extractError(event)
     const item = event.type === 'response.output_item.done' ? event.item : null
     if (item?.type === 'image_generation_call' && item.result) {
       results.push(item.result)
+      if (!resultReported) {
+        resultReported = true
+        reportProgress(`image result received after ${elapsedSeconds()}s; finishing response`, quiet)
+      }
     }
   }
 
   try {
-    const reader = response.body.getReader()
+    reader = response.body.getReader()
     while (true) {
       const { value, done } = await reader.read()
-      if (done) break
+      if (done) {
+        streamDone = true
+        break
+      }
       buffer += decoder.decode(value, { stream: true })
       buffer = consumeSseText(buffer, onEvent)
     }
@@ -346,6 +387,21 @@ async function requestImage({ prompt, images, output, model, baseUrl, timeoutMs 
     throw new Error(`failed while reading the image relay response: ${error.message}`)
   } finally {
     clearTimeout(timeout)
+    clearProgress()
+    if (reader && !streamDone) {
+      try {
+        await reader.cancel()
+      } catch {
+        // The original request error is more useful than cleanup failures.
+      }
+    }
+    if (reader) {
+      try {
+        reader.releaseLock()
+      } catch {
+        // The stream may already have released the lock after an abort.
+      }
+    }
   }
 
   if (relayError) throw new Error(relayError)
@@ -360,6 +416,7 @@ async function requestImage({ prompt, images, output, model, baseUrl, timeoutMs 
     fs.writeFileSync(filePath, decodeImageResult(results[index]), { mode: 0o600 })
     paths.push(filePath)
   }
+  reportProgress(`saved ${paths.length} image${paths.length === 1 ? '' : 's'} in ${elapsedSeconds()}s`, quiet)
   return paths
 }
 
@@ -381,6 +438,7 @@ async function generateImage(argv) {
     model: options.model,
     baseUrl: options.baseUrl,
     timeoutMs: options.timeoutMs,
+    quiet: options.quiet,
   })
   for (const filePath of paths) {
     console.log(`IMAGE_PATH=${filePath}`)
